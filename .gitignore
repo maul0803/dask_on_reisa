@@ -1,0 +1,15 @@
+*.log
+*.txt
+
+CMakeFiles/**
+outputs/**
+logs/**
+__pycache__/**
+
+simulation
+cmake_install.cmake
+Makefile
+config.yml
+address.var
+get_times.sh
+exp_aux.sh
