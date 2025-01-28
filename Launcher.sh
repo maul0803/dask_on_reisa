@@ -5,8 +5,8 @@
 PDI_PREFIX=${HOME}/opt/pdi_py39
 export PATH=${PDI_PREFIX}/bin:${PATH}
 
-#PARTITION=cpu_short    # Ruche
-PARTITION=short         # FT3
+#PARTITION=cpu_short    # For Ruche cluster
+PARTITION=short         # For FT3 cluster
 
 MAIN_DIR=$PWD
 
@@ -30,28 +30,28 @@ echo -e "Running in $MAIN_DIR\n"
 pdirun make -B simulation
 
 # MPI VALUES
-PARALLELISM1=4  # Réduit le nombre d'axes x
-PARALLELISM2=8  # Réduit le nombre d'axes y
-MPI_PER_NODE=32 # MPI processus par nœud (inchangé)
+PARALLELISM1=4  # Number of MPI nodes along the x-axis
+PARALLELISM2=8  # Number of MPI nodes along the y-axis
+MPI_PER_NODE=32 # Number of MPI processes per node (unchanged)
 
 # DATASIZE
-DATASIZE1=$((256*$PARALLELISM1)) # Nombre d'éléments axe x
-DATASIZE2=$((512*$PARALLELISM2)) # Nombre d'éléments axe y
+DATASIZE1=$((256*$PARALLELISM1)) # Number of elements along the x-axis
+DATASIZE2=$((512*$PARALLELISM2)) # Number of elements along the y-axis
 
 # STEPS 
-GENERATION=25 # Nombre d'itérations
+GENERATION=25 # Number of simulation iterations
 
 # ANALYTICS HARDWARE
-WORKER_NODES=1 # Réduit à 1 nœud de travail
-CPUS_PER_WORKER=40 # Inchangé
+WORKER_NODES=1 # Reduced to 1 worker node
+CPUS_PER_WORKER=40 # Number of CPUs per worker (unchanged)
 
-# AUXILIAR VALUES
-SIMUNODES=$(($PARALLELISM2 * $PARALLELISM1 / $MPI_PER_NODE)) # Nombre de nœuds de simulation
-NNODES=$(($WORKER_NODES + $SIMUNODES + 1)) # Travailleurs + chef + simulation
-NPROC=$(($PARALLELISM2 * $PARALLELISM1 + $NNODES + 1)) # Nombre total de tâches déployées
-MPI_TASKS=$(($PARALLELISM2 * $PARALLELISM1)) # Nombre de tâches MPI
-GLOBAL_SIZE=$(($DATASIZE1 * $DATASIZE2 * 8 / 1000000)) # Taille globale
-LOCAL_SIZE=$(($GLOBAL_SIZE / $MPI_TASKS)) # Taille locale
+# AUXILIARY VALUES
+SIMUNODES=$(($PARALLELISM2 * $PARALLELISM1 / $MPI_PER_NODE)) # Number of simulation nodes
+NNODES=$(($WORKER_NODES + $SIMUNODES + 1)) # Workers + head + simulation
+NPROC=$(($PARALLELISM2 * $PARALLELISM1 + $NNODES + 1)) # Total number of deployed tasks
+MPI_TASKS=$(($PARALLELISM2 * $PARALLELISM1)) # Number of MPI tasks
+GLOBAL_SIZE=$(($DATASIZE1 * $DATASIZE2 * 8 / 1000000)) # Global size in MB
+LOCAL_SIZE=$(($GLOBAL_SIZE / $MPI_TASKS)) # Local size in MB
 
 # MANAGING FILES
 date=$(date +%Y-%m-%d_%R)

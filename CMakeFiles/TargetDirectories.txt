@@ -1,0 +1,3 @@
+/mnt/lustre/scratch/nlsas/home/ulc/cursos/curso341/reisa_py39/CMakeFiles/simulation.dir
+/mnt/lustre/scratch/nlsas/home/ulc/cursos/curso341/reisa_py39/CMakeFiles/edit_cache.dir
+/mnt/lustre/scratch/nlsas/home/ulc/cursos/curso341/reisa_py39/CMakeFiles/rebuild_cache.dir
