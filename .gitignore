@@ -5,6 +5,7 @@ outputs/**
 logs/**
 __pycache__/**
 
+simulation
 cmake_install.cmake
 Makefile
 config.yml
