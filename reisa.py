@@ -66,6 +66,7 @@ class Reisa:
 
         @ray.remote(max_retries=-1, resources={"compute":1, "transit":iter_ratio}, scheduling_strategy="DEFAULT")
         def iter_task(i: int, actors):
+            enable_dask_on_ray()
             current_results = [actor.trigger.remote(process_task, i) for actor in actors]
             current_results = ray.get(current_results)
             #print("current_results_init:", type(current_results)) #<class 'list'>
