@@ -1,45 +1,49 @@
-import os
-import dask.array as da
-import ray
-from ray.util.dask import enable_dask_on_ray, disable_dask_on_ray
-from reisa import Reisa
+import time
 import numpy as np
+from  reisa import Reisa # Mandatory import
+import os
+from ray.util.dask import ray_dask_get, enable_dask_on_ray, disable_dask_on_ray
+import dask.array as da
+# The user can decide which task is executed on each level of the following tree
+'''
+   [p0 p1 p2 p3]-->[p0 p1 p2 p3]      # One task per process per iteration (we can get previous iterations data)
+    \  /   \  /     \  /  \  /
+     \/     \/       \/    \/
+     iteration 0--> iteration 1 --> [...] --> result
+    # One task per iteration (typically gathering the results of all the actors in that iteration)
+    # We can get the result of the previous iterations
+'''
 
-
-# Initialization of REISA
+# Get infiniband address
 address = os.environ.get("RAY_ADDRESS").split(":")[0]
-handler = Reisa("config.yml", address)#Ray.init
+# Starting reisa (mandatory)
+handler = Reisa("config.yml", address)
 max = handler.iterations
-
-# Process-level analytics code (Dask)
+    
+# Process-level analytics code
 def process_func(rank: int, i: int, queue):
-    data = ray.get(queue[i]) if isinstance(queue[i], ray.ObjectRef) else queue[i]
-    # Use of a dask array (instead of a numpy array)
-    gt = da.from_array(data, chunks=5)
-    return gt.sum().compute()  # Execute the computation
+    #print("process_func AVANT queue:", type(queue))
+    #print("process_func AVANT queue[i]:", type(queue[i]))
+    result = queue[i].sum()
+    #print("process_func APRES:", type(result))
+    return result
 
-# Iteration-level analytics code (Dask)
+# Iteration-level analytics code
 def iter_func(i: int, current_results):
-    data = ray.get(current_results)
-    results_dask = da.from_array(data, chunks=len(current_results))
-    return results_dask.sum().compute()  # Perform the computation
+    #print("iter_func AVANT:", type(current_results))
+    #print("iter_func AVANT:", current_results.shape)
+    current_results = current_results.sum()#.compute(scheduler=ray_dask_get)
+    #print("iter_func APRES:", type(current_results))
+    return current_results
 
-
-# Use our Dask config helper to set the scheduler to ray_dask_get globally,
-# without having to specify it on each compute call.
-enable_dask_on_ray()
-
-# Iterations to be executed
+# The iterations that will be executed (from 0 to end by default), in this case we will need 4 available timesteps
 iterations = [i for i in range(0, max)]
 
-# Launch the analytics with Dask
+#Launch analytics (blocking operation), kept iters paramerter means the number of iterations kept in memory before the current iteration
 result = handler.get_result(process_func, iter_func, selected_iters=iterations, kept_iters=max, timeline=False)
 
-# Not useful after the compute
-disable_dask_on_ray()
-
-# Save the results
+# Write the results
 with open("results.log", "a") as f:
-    f.write("\nResults per iteration: " + str(result) + ".\n")
+    f.write("\nResults per iteration: "+str(result)+".\n")
 
 handler.shutdown()

@@ -57,10 +57,10 @@ RM = /mnt/netapp1/Optcesga_FT2_RHEL7/2022/gentoo/31032022/usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /mnt/lustre/scratch/nlsas/home/ulc/cursos/curso341/reisa_py39
+CMAKE_SOURCE_DIR = /mnt/lustre/scratch/nlsas/home/ulc/cursos/curso341/reisa_tests
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /mnt/lustre/scratch/nlsas/home/ulc/cursos/curso341/reisa_py39
+CMAKE_BINARY_DIR = /mnt/lustre/scratch/nlsas/home/ulc/cursos/curso341/reisa_tests
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -87,9 +87,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/lustre/scratch/nlsas/home/ulc/cursos/curso341/reisa_py39/CMakeFiles /mnt/lustre/scratch/nlsas/home/ulc/cursos/curso341/reisa_py39//CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/lustre/scratch/nlsas/home/ulc/cursos/curso341/reisa_tests/CMakeFiles /mnt/lustre/scratch/nlsas/home/ulc/cursos/curso341/reisa_tests//CMakeFiles/progress.marks
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/lustre/scratch/nlsas/home/ulc/cursos/curso341/reisa_py39/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /mnt/lustre/scratch/nlsas/home/ulc/cursos/curso341/reisa_tests/CMakeFiles 0
 .PHONY : all
 
 # The main clean target

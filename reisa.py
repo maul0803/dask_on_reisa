@@ -7,34 +7,14 @@ import ray
 import sys
 import gc
 import os
-
+import dask.array as da
+from ray.util.dask import ray_dask_get, enable_dask_on_ray, disable_dask_on_ray
+#get_result -> iter_task -> trigger -> process_task -> process_func
+#	   		-> iter_func
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 # "Background" code for the user
-
-# This class will be the key to able the user to deserialize the data transparently
-class RayList(list):
-    def __call__(self, index): # Square brackets operation to obtain the data behind the references.
-        item = super().__getitem__(index)
-        if isinstance(index, slice):
-            free(item)
-        else:
-            free([item])
-
-    def __getitem__(self, index): # Square brackets operation to obtain the data behind the references.
-        item = super().__getitem__(index)
-        if isinstance(index, slice):
-            return ray.get(RayList(item))
-        else:
-            return ray.get(item)
-
-
-import os
-import ray
-import yaml
-
-
 class Reisa:
     def __init__(self, file, address):
         self.iterations = 0
@@ -43,20 +23,14 @@ class Reisa:
         self.datasize = 0
         self.workers = 0
         self.actors = list()
-
-        # SPREAD DATA AS MUCH AS POSSIBLE THE DATA IN A DISTRIBUTED ENVIRONMENT: https://docs.ray.io/en/latest/ray-more-libs/dask-on-ray.html
-        # Set environment variables for Ray
-        os.environ["RAY_scheduler_spread_threshold"] = "0.0"
-        # If the head node should not execute any computations
-        os.environ["RAY_NUM_CPUS"] = "0"  # Specify that the head node should not use any CPUs
-
-        # Initialize Ray
+        
+        # Init Ray
         if os.environ.get("REISA_DIR"):
-            ray.init("ray://" + address + ":10001", runtime_env={"working_dir": os.environ.get("REISA_DIR")})
+            ray.init("ray://"+address+":10001", runtime_env={"working_dir": os.environ.get("REISA_DIR")})
         else:
-            ray.init("ray://" + address + ":10001", runtime_env={"working_dir": os.environ.get("PWD")})
-
-        # Get the configuration of the simulation
+            ray.init("ray://"+address+":10001", runtime_env={"working_dir": os.environ.get("PWD")})
+       
+        # Get the configuration of the simulatin
         with open(file, "r") as stream:
             try:
                 data = yaml.safe_load(stream)
@@ -69,8 +43,9 @@ class Reisa:
                 eprint(e)
 
         return
-
+    
     def get_result(self, process_func, iter_func, global_func=None, selected_iters=None, kept_iters=None, timeline=False):
+            
         max_tasks = ray.available_resources()['compute']
         results = list()
         actors = self.get_actors()
@@ -91,24 +66,35 @@ class Reisa:
 
         @ray.remote(max_retries=-1, resources={"compute":1, "transit":iter_ratio}, scheduling_strategy="DEFAULT")
         def iter_task(i: int, actors):
-            current_results = [actor.trigger.remote(process_task, i) for j, actor in enumerate(actors)]
+            current_results = [actor.trigger.remote(process_task, i) for actor in actors]
             current_results = ray.get(current_results)
-            
-            if i >= kept_iters-1:
-                [actor.free_mem.remote(current_results[j], i-kept_iters+1) for j, actor in enumerate(actors)]
-            
-            return iter_func(i, RayList(itertools.chain.from_iterable(current_results)))
-
+            #print("current_results_init:", type(current_results)) #<class 'list'>
+            #print("current_results_init[0]:", type(current_results[0])) #<class 'list'>
+            #print("current_results_init[0][0]:", type(current_results[0][0])) #<class 'ray._raylet.ObjectRef'>
+            current_results_list = list(itertools.chain.from_iterable(current_results))
+            #print("current_results_list:", type(current_results_list)) #<class 'list'>
+            #print("current_results_list[0]:", type(current_results_list[0])) #<class 'ray._raylet.ObjectRef'>
+            current_results_list = ray.get(current_results_list)
+            #print("current_results_list2:", type(current_results_list)) #<class 'list'>
+            #print("current_results_list2[0]:", type(current_results_list[0])) #<class 'dask.array.core.Array'>
+            current_results_array = da.stack(current_results_list, axis=0)
+            #print("current_results_array:", type(current_results_array)) #<class 'dask.array.core.Array'>
+            current_results = iter_func(i, current_results_array)
+            #print("current_results:", type(current_results)) #<class 'dask.array.core.Array'>
+            return current_results
         start = time.time() # Measure time
         results = [iter_task.remote(i, actors) for i in selected_iters]
-        ray.wait(results, num_returns=len(results)) # Wait for the results
+        results = ray.get(results)
+        #print("results:", type(results)) #<class 'list'>
+        #print("results[0]:", type(results[0])) #<class 'dask.array.core.Array'>
+        tmp = da.stack(results, axis=0)
+        #ray.wait(results, num_returns=len(results)) # Wait for the results
         eprint("{:<21}".format("EST_ANALYTICS_TIME:") + "{:.5f}".format(time.time()-start) + " (avg:"+"{:.5f}".format((time.time()-start)/self.iterations)+")")
         if global_func:
-            return global_func(RayList(results))
+            return global_func(tmp) #RayList(results) TODO
         else:
-            tmp = ray.get(results)
             output = {} # Output dictionary
-
+            tmp = tmp.compute(scheduler=ray_dask_get)
             for i, _ in enumerate(selected_iters):
                 if tmp[i] is not None:
                     output[selected_iters[i]] = tmp[i]

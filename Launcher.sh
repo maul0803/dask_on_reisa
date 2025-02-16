@@ -5,8 +5,8 @@
 PDI_PREFIX=${HOME}/opt/pdi_py39
 export PATH=${PDI_PREFIX}/bin:${PATH}
 
-#PARTITION=cpu_short    # For Ruche cluster
-PARTITION=short         # For FT3 cluster
+#PARTITION=cpu_short    # Ruche
+PARTITION=short         # FT3
 
 MAIN_DIR=$PWD
 
@@ -30,28 +30,28 @@ echo -e "Running in $MAIN_DIR\n"
 pdirun make -B simulation
 
 # MPI VALUES
-PARALLELISM1=4  # Number of MPI nodes along the x-axis
-PARALLELISM2=8  # Number of MPI nodes along the y-axis
-MPI_PER_NODE=32 # Number of MPI processes per node (unchanged)
+PARALLELISM1=8 # MPI nodes axis x
+PARALLELISM2=16 # MPI nodes axis y
+MPI_PER_NODE=32 # MPI processes per simulation node
 
 # DATASIZE
-DATASIZE1=$((256*$PARALLELISM1)) # Number of elements along the x-axis
-DATASIZE2=$((512*$PARALLELISM2)) # Number of elements along the y-axis
+DATASIZE1=$((256*$PARALLELISM1)) # Number of elements axis x
+DATASIZE2=$((512*$PARALLELISM2)) # Number of elements axis y
 
 # STEPS 
-GENERATION=25 # Number of simulation iterations
+GENERATION=25 # Number of iterations on the simulation
 
 # ANALYTICS HARDWARE
-WORKER_NODES=1 # Reduced to 1 worker node
-CPUS_PER_WORKER=40 # Number of CPUs per worker (unchanged)
+WORKER_NODES=2 # DEISA uses (MPI_PROCESSES/4) worker nodes  with 48 threads each one
+CPUS_PER_WORKER=40 # 24 # Parallelism on each worker
 
-# AUXILIARY VALUES
-SIMUNODES=$(($PARALLELISM2 * $PARALLELISM1 / $MPI_PER_NODE)) # Number of simulation nodes
-NNODES=$(($WORKER_NODES + $SIMUNODES + 1)) # Workers + head + simulation
-NPROC=$(($PARALLELISM2 * $PARALLELISM1 + $NNODES + 1)) # Total number of deployed tasks
-MPI_TASKS=$(($PARALLELISM2 * $PARALLELISM1)) # Number of MPI tasks
-GLOBAL_SIZE=$(($DATASIZE1 * $DATASIZE2 * 8 / 1000000)) # Global size in MB
-LOCAL_SIZE=$(($GLOBAL_SIZE / $MPI_TASKS)) # Local size in MB
+# AUXILIAR VALUES
+SIMUNODES=$(($PARALLELISM2 * $PARALLELISM1 / $MPI_PER_NODE)) # NUMBER OF SIMULATION NODES
+NNODES=$(($WORKER_NODES + $SIMUNODES + 1)) # WORKERS + HEAD + SIMULATION (CLIENT WILL BE WITHIN THE HEAD NODE)
+NPROC=$(($PARALLELISM2 * $PARALLELISM1 + $NNODES + 1)) # NUMBER OF DEPLOYED TASKS (MPI + ALL RAY INSTANCES + CLIENT)
+MPI_TASKS=$(($PARALLELISM2 * $PARALLELISM1)) # NUMBER OF DEPLOYED TASKS (MPI + ALL RAY INSTANCES + CLIENT)
+GLOBAL_SIZE=$(($DATASIZE1 * $DATASIZE2 * 8 / 1000000)) # NUMBER OF DEPLOYED TASKS (MPI + ALL RAY INSTANCES + CLIENT)
+LOCAL_SIZE=$(($GLOBAL_SIZE / $MPI_TASKS)) # NUMBER OF DEPLOYED TASKS (MPI + ALL RAY INSTANCES + CLIENT)
 
 # MANAGING FILES
 date=$(date +%Y-%m-%d_%R)
