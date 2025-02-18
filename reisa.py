@@ -110,18 +110,18 @@ class Reisa:
 
         start = time.time()  # Measure time
         results = [iter_task.remote(i, actors) for i in selected_iters]
-        results = ray.get(results)
-        tmp = da.stack(results, axis=0)
-
+        # print("results:", type(results))
+        # print("results[0]:", type(results[0]))
+        ray.wait(results, num_returns=len(results))  # Wait for the results
         eprint(
             "{:<21}".format("EST_ANALYTICS_TIME:") + "{:.5f}".format(time.time() - start) + " (avg:" + "{:.5f}".format(
                 (time.time() - start) / self.iterations) + ")")
-
+        tmp = ray.get(results)
         if global_func:
             return global_func(tmp)  # RayList(results) TODO
         else:
             output = {}  # Output dictionary
-            tmp = tmp.compute(scheduler=ray_dask_get)
+
             for i, _ in enumerate(selected_iters):
                 if tmp[i] is not None:
                     output[selected_iters[i]] = tmp[i]
