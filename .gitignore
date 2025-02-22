@@ -1,8 +1,9 @@
 *.log
-
+.idea
 outputs/**
 logs/**
 __pycache__/**
+CMakeFiles/**
 
 simulation
 cmake_install.cmake
@@ -10,3 +11,4 @@ config.yml
 address.var
 get_times.sh
 exp_aux.sh
+CMakeCache.txt
