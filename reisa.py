@@ -97,8 +97,8 @@ class Reisa:
             # current_results is a list of ObjectRef instances
             current_results = [actor.trigger.remote(process_task, i) for actor in actors]  # type: #List[ray._raylet.ObjectRef]
             current_results = ray.get(current_results)  # type: #List[List[ray._raylet.ObjectRef]]
-            if i >= kept_iters-1:
-                [actor.free_mem.remote(current_results[j], i-kept_iters+1) for j, actor in enumerate(actors)]
+            #if i >= kept_iters-1:
+            #    [actor.free_mem.remote(current_results[j], i-kept_iters+1) for j, actor in enumerate(actors)]
             # current_results_list is a flattened list of ObjectRef instances
             current_results_list = list(
                 itertools.chain.from_iterable(current_results))  # type: #List[ray._raylet.ObjectRef]

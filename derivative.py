@@ -25,9 +25,12 @@ max = handler.iterations
 # Process-level analytics code
 def process_func(rank: int, i: int, queue):
     gt = queue[-5:]
+    print("gt:", type(gt))
     c0 = 2. / 3.
     result = c0 * (gt[3] - gt[1] - (gt[4] - gt[0]) / 8.)
+    print("result:", type(result))
     result_dask = da.mean(result)
+    print("result_dask:", type(result_dask))
     return result_dask
 
 
