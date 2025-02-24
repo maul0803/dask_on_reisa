@@ -1,3 +1,0 @@
-/mnt/lustre/scratch/nlsas/home/ulc/cursos/curso341/dask_on_reisa/CMakeFiles/simulation.dir
-/mnt/lustre/scratch/nlsas/home/ulc/cursos/curso341/dask_on_reisa/CMakeFiles/edit_cache.dir
-/mnt/lustre/scratch/nlsas/home/ulc/cursos/curso341/dask_on_reisa/CMakeFiles/rebuild_cache.dir
