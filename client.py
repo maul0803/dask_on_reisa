@@ -1,41 +1,59 @@
 import time
 import numpy as np
-from  reisa import Reisa # Mandatory import
+from reisa import Reisa  # Mandatory import
 import os
+from ray.util.dask import ray_dask_get, enable_dask_on_ray, disable_dask_on_ray
+import dask.array as da
 
 # The user can decide which task is executed on each level of the following tree
-'''
-   [p0 p1 p2 p3]-->[p0 p1 p2 p3]      # One task per process per iteration (we can get previous iterations data)
+"""
+   [p0 p1 p2 p3]-->[p0 p1 p2 p3]      # One task per process per iteration (we can get previous iterations' data)
     \  /   \  /     \  /  \  /
      \/     \/       \/    \/
      iteration 0--> iteration 1 --> [...] --> result
-    # One task per iteration (typically gathering the results of all the actors in that iteration)
-    # We can get the result of the previous iterations
-'''
+    # One task per iteration (typically gathering the results of all actors in that iteration)
+    # We can get the result of previous iterations.
+"""
 
 # Get infiniband address
 address = os.environ.get("RAY_ADDRESS").split(":")[0]
 # Starting reisa (mandatory)
 handler = Reisa("config.yml", address)
-max = handler.iterations
-    
-# Process-level analytics code
+max_iterations = handler.iterations
+
 def process_func(rank: int, i: int, queue):
-    gt = np.array(queue[i])
-    return np.sum(gt)
+    """
+    Process-level function executed for each process in an iteration.
 
-# Iteration-level analytics code
-def iter_func(i: int, current_results, previous_iterations):
-    return np.sum(current_results[:])
+    :param rank: The rank (ID) of the process.
+    :param i: The current iteration index.
+    :param queue: Data queue containing simulation values for the iteration.
+    :return: Dask array with the sum of the queue's data for the current iteration.
+    """
+    result = queue[i].sum()
+    return result
 
-# The iterations that will be executed (from 0 to end by default), in this case we will need 4 available timesteps
-iterations = [i for i in range(0, max)]
+
+def iter_func(i: int, current_results):
+    """
+    Iteration-level function that aggregates results from all processes.
+
+    :param i: The current iteration index.
+    :param current_results: List of results from all processes in the iteration.
+    :return: Sum of all process results for the iteration.
+    """
+    current_results = current_results.sum().compute(scheduler=ray_dask_get)
+    return current_results
+
+# Define the range of iterations to be executed (default is from 0 to max)
+iterations = list(range(max_iterations))
 
 # Launch the analytics (blocking operation), kept iters paramerter means the number of iterations kept in memory before the current iteration
 result = handler.get_result(process_func, iter_func, selected_iters=iterations, kept_iters=1, timeline=False)
 
-# Write the results
+# Write the results to a log file
 with open("results.log", "a") as f:
     f.write("\nResults per iteration: "+str(result)+".\n")
 
+# Shut down the handler and free resources
 handler.shutdown()

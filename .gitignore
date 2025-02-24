@@ -3,6 +3,7 @@
 outputs/**
 logs/**
 __pycache__/**
+CMakeFiles/**
 
 simulation
 cmake_install.cmake

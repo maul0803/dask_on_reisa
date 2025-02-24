@@ -14,12 +14,29 @@ from ray.util.dask import ray_dask_get, enable_dask_on_ray, disable_dask_on_ray
 # get_result -> iter_task -> trigger -> process_task -> process_func
 #            -> iter_func
 def eprint(*args, **kwargs):
+    """
+    Print messages to the standard error stream.
+
+    :param args: Positional arguments to print.
+    :param kwargs: Keyword arguments for the print function.
+    """
     print(*args, file=sys.stderr, **kwargs)
 
 
 # "Background" code for the user
 class Reisa:
+    """
+    A class that initializes and manages a Ray and Dask based simulation environment.
+    """
+
     def __init__(self, file, address):
+        """
+        Initialize the Reisa simulation by reading configuration parameters
+        from a YAML file and setting up Ray.
+
+        :param file: Path to the YAML configuration file.
+        :param address: Address of the Ray cluster.
+        """
         self.iterations = 0
         self.mpi_per_node = 0
         self.mpi = 0
@@ -61,7 +78,6 @@ class Reisa:
         :return: Dictionary containing the results of the selected iterations.
         """
         max_tasks = ray.available_resources()['compute']
-        results = list()
         actors = self.get_actors()
 
         if selected_iters is None:
@@ -72,12 +88,12 @@ class Reisa:
         @ray.remote(max_retries=-1, resources={"compute": 1}, scheduling_strategy="DEFAULT")
         def process_task(rank: int, i: int, queue):
             """
-            A task for processing each iteration for a given rank.
+            Remote function to process a simulation step.
 
-            :param rank: The rank of the process.
-            :param i: The iteration index.
-            :param queue: Queue used for processing.
-            :return: Result of processing.
+            :param rank: Rank of the process.
+            :param i: Current iteration.
+            :param queue: Data queue containing simulation values.
+            :return: Processed result.
             """
             return process_func(rank, i, queue)
 
@@ -86,34 +102,24 @@ class Reisa:
         @ray.remote(max_retries=-1, resources={"compute": 1, "transit": iter_ratio}, scheduling_strategy="DEFAULT")
         def iter_task(i: int, actors):
             """
-            A task for processing iterations by triggering process tasks, executed by process nodes from the list of process actors (actors).
-            iter_func is executed by an analytic node.
+            Remote function to process an iteration.
 
-            :param i: The iteration index.
-            :param actors: List of process actors that handle the tasks.
-            :return: Processed results from the iterations.
+            :param i: Current iteration index.
+            :param actors: list of Ray actors managing the simulation.
+            :return: Processed iteration result.
             """
             enable_dask_on_ray()
-            # current_results is a list of ObjectRef instances
             current_results = [actor.trigger.remote(process_task, i) for actor in actors]  # type: #List[ray._raylet.ObjectRef]
             current_results = ray.get(current_results)  # type: #List[List[ray._raylet.ObjectRef]]
-            #if i >= kept_iters-1:
-            #    [actor.free_mem.remote(current_results[j], i-kept_iters+1) for j, actor in enumerate(actors)]
-            # current_results_list is a flattened list of ObjectRef instances
             current_results_list = list(
                 itertools.chain.from_iterable(current_results))  # type: #List[ray._raylet.ObjectRef]
-            # current_results_list after ray.get, which will contain the actual data (like Dask arrays)
             current_results_list = ray.get(current_results_list)  # type: #List[dask.array.core.Array]
-            # current_results_array is a Dask array formed by stacking the results
             current_results_array = da.stack(current_results_list, axis=0)  # type: #dask.array.core.Array
-            # current_results after applying the iteration function
             current_results = iter_func(i, current_results_array)  # type: #dask.array.core.Array
             return current_results
 
         start = time.time()  # Measure time
         results = [iter_task.remote(i, actors) for i in selected_iters]
-        # print("results:", type(results))
-        # print("results[0]:", type(results[0]))
         ray.wait(results, num_returns=len(results))  # Wait for the results
         eprint(
             "{:<21}".format("EST_ANALYTICS_TIME:") + "{:.5f}".format(time.time() - start) + " (avg:" + "{:.5f}".format(
@@ -133,30 +139,26 @@ class Reisa:
 
             return output
 
-    def get_actors(self):
+    def get_actor(self):
         """
-        Retrieve the actors created by the simulation.
+        Retrieve the Ray actors managing the simulation.
 
-        :return: List of ProcessActors.
+        :return: A list of Ray actors.
+        :raises Exception: If one of the Ray actors is not available after a timeout period.
         """
         timeout = 60
         start_time = time.time()
-        error = True
         self.actors = list()
-        while error:
+        while True:
             try:
                 for rank in range(0, self.mpi, self.mpi_per_node):
-                    self.actors.append(ray.get_actor("ranktor" + str(rank), namespace="mpi"))
-                error = False
-            except Exception as e:
+                    self.actors.append(ray.get_actor("ranktor"+str(rank), namespace="mpi"))
+                return self.actors
+            except Exception:
                 self.actors = list()
-                end_time = time.time()
-                elapsed_time = end_time - start_time
-                if elapsed_time >= timeout:
-                    raise Exception("Cannot get the Ray actors. Client is exiting")
+                if time.time() - start_time >= timeout:
+                    raise Exception("Cannot get the Ray actors. Client is exiting.")
             time.sleep(1)
-
-        return self.actors
 
     def shutdown(self):
         """
