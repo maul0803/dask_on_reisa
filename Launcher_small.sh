@@ -60,10 +60,10 @@ OUTPUT=outputs/$date\_P$MPI_TASKS\_SN$SIMUNODES\_LS$LOCAL_SIZE\_GS$GLOBAL_SIZE\_
 mkdir -p $OUTPUT
 mkdir logs 2>/dev/null
 touch logs/jobs.log
-cp *.yml *.py simulation Script_small.sh $OUTPUT
+cp *.yml *.py simulation Script.sh $OUTPUT
 
 # RUNNING
 cd $OUTPUT
-echo -e "Executing sbatch --parsable -N $NNODES --mincpus=40 --partition ${PARTITION} --ntasks=$NPROC Script_small.sh $SIMUNODES $MPI_PER_NODE $CPUS_PER_WORKER) in $PWD    "
-echo -e "Executing $(sbatch --parsable -N $NNODES --mincpus=40 --partition ${PARTITION} --ntasks=$NPROC Script_small.sh $SIMUNODES $MPI_PER_NODE $CPUS_PER_WORKER) in $PWD    " >> $MAIN_DIR/logs/jobs.log
+echo -e "Executing sbatch --parsable -N $NNODES --mincpus=40 --partition ${PARTITION} --ntasks=$NPROC Script.sh $SIMUNODES $MPI_PER_NODE $CPUS_PER_WORKER) in $PWD    "
+echo -e "Executing $(sbatch --parsable -N $NNODES --mincpus=40 --partition ${PARTITION} --ntasks=$NPROC Script.sh $SIMUNODES $MPI_PER_NODE $CPUS_PER_WORKER) in $PWD    " >> $MAIN_DIR/logs/jobs.log
 cd $MAIN_DIR

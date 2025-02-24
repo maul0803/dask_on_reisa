@@ -139,7 +139,7 @@ class Reisa:
 
             return output
 
-    def get_actor(self):
+    def get_actors(self):
         """
         Retrieve the Ray actors managing the simulation.
 

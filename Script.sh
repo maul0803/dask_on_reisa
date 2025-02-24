@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=01:00:00
+#SBATCH --time=00:05:00
 #SBATCH -o reisa.log
 #SBATCH --error reisa.log
 #SBATCH --mem-per-cpu=4G
