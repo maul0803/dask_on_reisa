@@ -95,7 +95,7 @@ end=$(date +%s%N)
 # LAUNCH THE CLIENT WITHIN THE HEAD NODE
 srun --oversubscribe --overcommit --nodes=1 --ntasks=1 --relative=0 -c 1\
     #`which python` reduction.py &
-    #`which python` derivative.py &
+    `which python` derivative.py &
     # `which python` client.py --ray-timeline &
 client=$!
 

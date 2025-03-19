@@ -10,7 +10,7 @@ import os
 import dask.array as da
 from ray.util.dask import ray_dask_get, enable_dask_on_ray, disable_dask_on_ray
 import dask
-dask.config.set({"dataframe.shuffle.algorithm": "tasks"})
+
 def eprint(*args, **kwargs):
     """
     Print messages to the standard error stream.
