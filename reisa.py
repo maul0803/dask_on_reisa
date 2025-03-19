@@ -24,21 +24,12 @@ def eprint(*args, **kwargs):
 # "Background" code for the user
 
 # This class will be the key to able the user to deserialize the data transparently
+# This class will be the key to able the user to deserialize the data transparently
 class RayList(list):
     """
     A custom list that interacts with Ray objects, allowing for transparent
     deserialization of remote references.
     """
-
-    def __getitem__(self, index):
-        """
-        Retrieve data from Ray references when accessed via square brackets.
-
-        :param index: The index or slice of the list to retrieve.
-        """
-        item = super().__getitem__(index)
-        return item
-
     def __getitem__(self, index): # Square brackets operation to obtain the data behind the references.
         """
         Get an item from the list while retrieving Ray objects.
