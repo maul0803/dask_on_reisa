@@ -10,6 +10,7 @@ import os
 import dask.array as da
 from ray.util.dask import ray_dask_get, enable_dask_on_ray, disable_dask_on_ray
 import dask
+from ray._private.internal_api import free
 
 def eprint(*args, **kwargs):
     """
@@ -141,6 +142,8 @@ class Reisa:
             current_results = ray.get(current_results) #List[List[ray._raylet.ObjectRef]]
             current_results_list = list(
                 itertools.chain.from_iterable(current_results))  # type: #List[ray._raylet.ObjectRef]
+            if i >= kept_iters-1:
+                [actor.free_mem.remote(current_results[j], i-kept_iters+1) for j, actor in enumerate(actors)]
             current_results_list = ray.get(current_results_list)  # type: #List[dask.array.core.Array]
             current_results_array = da.stack(current_results_list, axis=0)  # type: #dask.array.core.Array
             current_results = iter_func(i, current_results_array)  # type: #dask.array.core.Array
