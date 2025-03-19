@@ -28,6 +28,7 @@ pdi:
           exec: |
             from ray._private.internal_api import free
             from datetime import datetime
+            from reisa import RayList
             import dask.array as da
             import numpy as np
             import netifaces
@@ -90,7 +91,9 @@ pdi:
 
                 # The client will tell the actor to execute some tasks through this method
                 @ray.method(concurrency_group="exec")
-                def trigger(self, process_task: ray.remote_function.RemoteFunction, i: int):                 
+                def trigger(self, process_task: ray.remote_function.RemoteFunction, i: int):
+                    tasks = RayList()
+                    
                     # Ensure that all processes have stored its value and throwed their tasks
                     while np.sum(self.control[:i+1]) < (mpi_per_node*(i+1)):
                         pass
@@ -100,11 +103,8 @@ pdi:
                                     node_id=self.node_id,
                                     soft=True,
                                 )
-                            ).remote(
-                                mpid + self.offset, 
-                                i, 
-                                da.from_array(np.array(ray.get(self.data_queues[mpid][:i+1])))
-                            ) for mpid in range(mpi_per_node)] #
+                            ).remote(mpid+self.offset, i, self.data_queues[mpid][:i+1]) \
+                            for mpid in range(mpi_per_node)]
                     
                     gc.collect()
                     return tasks
@@ -164,7 +164,7 @@ pdi:
             start = time.time()
             while error:
                 try:
-                    d = ray.put(data, _owner=actor)
+                    d = ray.put(da.from_array(np.array(data)), _owner=actor)
                     error = False
                 except Exception as e:
                     error = True

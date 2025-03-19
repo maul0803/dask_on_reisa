@@ -9,10 +9,8 @@ import gc
 import os
 import dask.array as da
 from ray.util.dask import ray_dask_get, enable_dask_on_ray, disable_dask_on_ray
-
-
-# get_result -> iter_task -> trigger -> process_task -> process_func
-#            -> iter_func
+import dask
+dask.config.set({"dataframe.shuffle.algorithm": "tasks"})
 def eprint(*args, **kwargs):
     """
     Print messages to the standard error stream.
@@ -22,6 +20,36 @@ def eprint(*args, **kwargs):
     """
     print(*args, file=sys.stderr, **kwargs)
 
+# "Background" code for the user
+
+# This class will be the key to able the user to deserialize the data transparently
+class RayList(list):
+    """
+    A custom list that interacts with Ray objects, allowing for transparent
+    deserialization of remote references.
+    """
+
+    def __getitem__(self, index):
+        """
+        Retrieve data from Ray references when accessed via square brackets.
+
+        :param index: The index or slice of the list to retrieve.
+        """
+        item = super().__getitem__(index)
+        return item
+
+    def __getitem__(self, index): # Square brackets operation to obtain the data behind the references.
+        """
+        Get an item from the list while retrieving Ray objects.
+
+        :param index: Index or slice to retrieve.
+        :return: The retrieved item(s).
+        """
+        item = super().__getitem__(index)
+        if isinstance(index, slice):
+            return ray.get(RayList(item))
+        else:
+            return ray.get(item)
 
 # "Background" code for the user
 class Reisa:
@@ -110,7 +138,7 @@ class Reisa:
             """
             enable_dask_on_ray()
             current_results = [actor.trigger.remote(process_task, i) for actor in actors]  # type: #List[ray._raylet.ObjectRef]
-            current_results = ray.get(current_results)  # type: #List[List[ray._raylet.ObjectRef]]
+            current_results = ray.get(current_results) #List[List[ray._raylet.ObjectRef]]
             current_results_list = list(
                 itertools.chain.from_iterable(current_results))  # type: #List[ray._raylet.ObjectRef]
             current_results_list = ray.get(current_results_list)  # type: #List[dask.array.core.Array]

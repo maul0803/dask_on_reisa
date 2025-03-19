@@ -1,0 +1,11 @@
+resources:
+  # The directory where the PDI (Parallel Distributed Infrastructure) is installed
+  pdi_prefix: /home/ulc/cursos/curso341/opt/pdi_py39 
+  # The name of the partition to be used for the job (e.g., 'short', 'long', etc.)
+  partition: short
+  # The number of CPU cores available per node
+  cores_per_node: 64
+  # The number of CPU cores to use for the simulation
+  number_of_cores_to_use_per_node: 64
+  # The amount of RAM available per node (e.g., '192G' for 192 Gigabytes)
+  ram_per_node: 247G

@@ -4,7 +4,7 @@ from reisa import Reisa  # Mandatory import
 import os
 from ray.util.dask import ray_dask_get, enable_dask_on_ray, disable_dask_on_ray
 import dask.array as da
-
+import ray
 # The user can decide which task is executed on each level of the following tree
 """
    [p0 p1 p2 p3]-->[p0 p1 p2 p3]      # One task per process per iteration (we can get previous iterations' data)
@@ -31,13 +31,10 @@ def process_func(rank: int, i: int, queue):
     :param queue: Data queue containing simulation values for the iteration.
     :return: Dask array with the sum of the queue's data for the current iteration.
     """
-    gt = queue[-5:]
-    print("gt:", type(gt))
+    gt = ray.get(queue[-5:])
     c0 = 2. / 3.
     result = c0 * (gt[3] - gt[1] - (gt[4] - gt[0]) / 8.)
-    print("result:", type(result))
     result_dask = da.mean(result)
-    print("result_dask:", type(result_dask))
     return result_dask
 
 
